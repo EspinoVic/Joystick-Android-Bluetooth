@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".DeviceControl">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/txtInfo"
+        android:text="Textgo prueba"
+        android:textSize="20sp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        >
+    </TextView>
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/txtLog"
+        android:text="LOG"
+        android:textSize="12sp"
+        app:layout_constraintTop_toBottomOf="@id/txtInfo"
+        app:layout_constraintStart_toStartOf="parent"
+        android:lines="5"
+        android:gravity="start"
+        >
+    </EditText>
+
+
+    <io.github.controlwear.virtual.joystick.android.JoystickView
+        xmlns:custom="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/joystickView_lanchaDirection"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="32dp"
+        android:background="@drawable/joystick_background"
+        custom:JV_buttonImage="@drawable/pink_ball"
+        custom:JV_fixedCenter="false"
+        custom:layout_constraintBottom_toBottomOf="parent"
+        custom:layout_constraintLeft_toLeftOf="parent"
+        custom:layout_constraintRight_toRightOf="parent"
+        />
+
+
+    <ImageButton
+        android:id="@+id/btn_acelerar"
+        android:layout_width="162dp"
+        android:layout_height="148dp"
+
+
+        app:layout_constraintBottom_toBottomOf="@id/gl_centerHorizontal"
+        app:layout_constraintRight_toRightOf="parent"
+
+        android:src="@drawable/ic_arrow_drop_up_black_24dp"
+
+
+        />
+
+
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/gl_centerVertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.5" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/gl_centerHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.5" />
+</androidx.constraintlayout.widget.ConstraintLayout>

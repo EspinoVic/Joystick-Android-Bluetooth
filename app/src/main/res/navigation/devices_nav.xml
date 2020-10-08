@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/devices_nav"
+    app:startDestination="@id/fragmentListaDevices">
+
+
+    <fragment
+        android:id="@+id/deviceControl"
+        android:name="com.example.controlador.DeviceControl"
+        android:label="fragment_device_control"
+        tools:layout="@layout/fragment_device_control" />
+    <fragment
+        android:id="@+id/fragmentListaDevices"
+        android:name="com.example.controlador.FragmentListaDevices"
+        android:label="fragment_lista_devices"
+        tools:layout="@layout/fragment_lista_devices" >
+        <action
+            android:id="@+id/action_fragmentListaDevices_to_deviceControl"
+            app:destination="@id/deviceControl" />
+    </fragment>
+
+
+</navigation>
