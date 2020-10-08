@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
@@ -46,7 +47,7 @@ public class DeviceControl extends Fragment {
     private BluetoothAdapter btAdapter = null;
     private BluetoothSocket btSocket = null;
     private StringBuilder dataStringIN = new StringBuilder();
-    private ConnectedThread myConexionBT;
+    private ConnectedThread myConexionBTConnectedThread;
     // Identificador unico de servicio - SPP UUID
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     // String para la direccion MAC
@@ -58,6 +59,7 @@ public class DeviceControl extends Fragment {
 
     BluetoothViewModel bluetoothViewModelIn;
 
+    private boolean appActive;
     public DeviceControl() {
         // Required empty public constructor
     }
@@ -72,54 +74,22 @@ public class DeviceControl extends Fragment {
         viewMDeviceSelected = new ViewModelProvider(requireActivity()).get(DeviceSelected.class);
 
         this.bluetoothViewModelIn = new ViewModelProvider(requireActivity()).get(BluetoothViewModel.class);
-        this.bluetoothViewModelIn.getBluetoothIN().observe(getViewLifecycleOwner(), new Observer<String>() {
-            @Override
-            public void onChanged(String s) {
 
-                int endOfLineIndex = s.length();
-
-                if (endOfLineIndex > 2) {
-                    String dataInPrint = s; /*dataStringIN.substring(0, endOfLineIndex);*/
-
-                    if(dataInPrint.contains(";")){/*CONFIRM;angle;velocity*/
-
-                        dataInPrint = dataInPrint.substring(0,dataInPrint.length()-1);/*Remove #*/
-                        final String[] confirmationSplit = dataInPrint.split(";");
-                        if(confirmationSplit[0].isEmpty() || confirmationSplit[1].isEmpty()){
-                            Log.d("ONE EMPTY",confirmationSplit[0] +confirmationSplit[1] + confirmationSplit[0].isEmpty()+ " "+confirmationSplit[1].isEmpty());
-                            return;
-                        }
-                        anglePivot = Integer.parseInt( confirmationSplit[1] );
-                        velocityPivot = Integer.parseInt( confirmationSplit[0] );
-
-                            /*String beforetxt = txtLog.getText().toString();
-                            txtLog.setText(beforetxt + dataStringIN);*/
-//                            System.out.println(dataInPrint);
-                        Log.d("CONFIRMATION",dataInPrint);
-
-                    }
-                    //txt datra in
-                    //txtInfoTemp.setText("Dato: " + dataInPrint);//<-<- PARTE A MODIFICAR >->->
-                    //dataStringIN.delete(0, dataStringIN.length());
-                }
-            }
-        });
-
-        bluetoothIn = new Handler(Looper.getMainLooper()) {
+       /* bluetoothIn = new Handler(Looper.getMainLooper()) {
 
             public void handleMessage(android.os.Message msg) {
                 if (msg.what == handlerState) {
                     String readMessage = (String) msg.obj;
                     dataStringIN.append(readMessage);
 
-                    int endOfLineIndex = dataStringIN.length();/*dataStringIN.indexOf("#");*/
+                    int endOfLineIndex = dataStringIN.length();*//*dataStringIN.indexOf("#");*//*
 
                     if (endOfLineIndex > 0) {
                         String dataInPrint = dataStringIN.substring(0, endOfLineIndex);
 
-                        if(dataInPrint.contains(";")){/*CONFIRM;angle;velocity*/
+                        if(dataInPrint.contains(";")){*//*CONFIRM;angle;velocity*//*
 
-                            dataInPrint = dataInPrint.substring(0,dataInPrint.length()-1);/*Remove #*/
+                            dataInPrint = dataInPrint.substring(0,dataInPrint.length()-1);*//*Remove #*//*
                             final String[] confirmationSplit = dataInPrint.split(";");
                             if(confirmationSplit[0].isEmpty() || confirmationSplit[1].isEmpty()){
                                 Log.d("ONE EMPTY",confirmationSplit[0] +confirmationSplit[1] + confirmationSplit[0].isEmpty()+ " "+confirmationSplit[1].isEmpty());
@@ -128,8 +98,8 @@ public class DeviceControl extends Fragment {
                             anglePivot = Integer.parseInt( confirmationSplit[1] );
                             velocityPivot = Integer.parseInt( confirmationSplit[0] );
 
-                            /*String beforetxt = txtLog.getText().toString();
-                            txtLog.setText(beforetxt + dataStringIN);*/
+                            *//*String beforetxt = txtLog.getText().toString();
+                            txtLog.setText(beforetxt + dataStringIN);*//*
 //                            System.out.println(dataInPrint);
                             Log.d("CONFIRMATION",dataInPrint);
 
@@ -141,7 +111,7 @@ public class DeviceControl extends Fragment {
                 }
             }
         };
-
+*/
         btAdapter = BluetoothAdapter.getDefaultAdapter(); // get Bluetooth adapter
         VerificarEstadoBT();
 
@@ -160,21 +130,26 @@ public class DeviceControl extends Fragment {
 
         try
         {
-            btSocket = createBluetoothSocket(device);
+            //crea un conexion de salida segura para el dispositivo
+            //usando el servicio UUID
+            btSocket = device.createRfcommSocketToServiceRecord(BTMODULEUUID);//createBluetoothSocket(device);
         } catch (IOException e) {
             Toast.makeText(getContext(), "La creacción del Socket fallo", Toast.LENGTH_SHORT).show();
         }
         // Establece la conexión con el socket Bluetooth.
         try
         {
+            this.appActive   = true;
             btSocket.connect();
         } catch (IOException e) {
             try {
                 btSocket.close();
-            } catch (IOException e2) {}
+            } catch (IOException e2) {
+
+            }
         }
-        myConexionBT = new ConnectedThread(btSocket);
-        myConexionBT.start();
+        myConexionBTConnectedThread = new ConnectedThread(btSocket);
+        myConexionBTConnectedThread.start();
     }
 
     @Override
@@ -185,16 +160,12 @@ public class DeviceControl extends Fragment {
         { // Cuando se sale de la aplicación esta parte permite
             // que no se deje abierto el socket
             btSocket.close();
+            this.appActive   = false;
         } catch (IOException e2) {
 
         }
     }
-    private BluetoothSocket createBluetoothSocket(BluetoothDevice device) throws IOException
-    {
-        //crea un conexion de salida segura para el dispositivo
-        //usando el servicio UUID
-        return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
-    }
+
     TextView txtInfoTemp;
     TextView txtLog;
 
@@ -210,7 +181,7 @@ public class DeviceControl extends Fragment {
              @Override
              public void onClick(View view) {
                 for(int i = 0; i<10;i++){
-                    myConexionBT.write("CHANGE;"+(i*10)+";"+((i*10)+1)+"#");//Backward
+                    myConexionBTConnectedThread.write("CHANGE;"+(i*10)+";"+((i*10)+1)+"#");//Backward
                 }
              }
          });
@@ -222,7 +193,29 @@ public class DeviceControl extends Fragment {
 
         txtInfoTemp.setText(value.info);
 
+        /*Notify Arduino confirmation to establish the new pivote values.*/
+        this.bluetoothViewModelIn.getBluetoothIN().observe(getViewLifecycleOwner(), new Observer<String>() {
+            @Override
+            public void onChanged(String dataInPrint) {
+/*
+                Pattern confirmation
+                angle;velocity
+*/
+                final String[] confirmationSplit = dataInPrint.split(";");
+                if(confirmationSplit[0].isEmpty() || confirmationSplit[1].isEmpty()){
+                    Log.d("ONE EMPTY",confirmationSplit[0] +confirmationSplit[1] + confirmationSplit[0].isEmpty()+ " "+confirmationSplit[1].isEmpty());
+                    return;
+                }
+                anglePivot = Integer.parseInt( confirmationSplit[1] );
+                velocityPivot = Integer.parseInt( confirmationSplit[0] );
 
+                    /*String beforetxt = txtLog.getText().toString();
+                    txtLog.setText(beforetxt + dataStringIN);*/
+//                            System.out.println(dataInPrint);
+                Log.d("CONFIRMATION",dataInPrint);
+
+            }
+        });
 
         JoystickView joystickLeft = root.findViewById(R.id.joystickView_lanchaDirection);
         joystickLeft.setOnMoveListener(new JoystickView.OnMoveListener() {
@@ -249,33 +242,10 @@ public class DeviceControl extends Fragment {
                 }
                 /**/
                 if(speedChange||angleChange){
-                    myConexionBT.write("CHANGE;"+angle+";"+strength+"#");
-
+                    myConexionBTConnectedThread.write("CHANGE;"+angle+";"+strength+"#");
                 }
 
-               /* if(strength>90 ){
 
-                    if(angle>=45 && angle<135){
-
-                    }else
-                    if(angle>=135 && angle<225){
-
-                    }else
-                    if(angle>=225 && angle<315){
-
-                    }else
-                    if(angle>=315 && angle<=360 || angle<45){
-
-                    }
-                    if(angle>179){//179 a 360
-                        myConexionBT.write("B");//Backward
-                    }
-                    else if(angle>-1){//0 a 179
-                        myConexionBT.write("F");//Forward
-                    }
-                }else{
-                    myConexionBT.write("0");
-                }*/
             }
         });
         return root;
@@ -300,6 +270,7 @@ public class DeviceControl extends Fragment {
     {
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private MutableLiveData<String> bluetootINLiveData;
 
         public ConnectedThread(BluetoothSocket socket)
         {
@@ -317,18 +288,42 @@ public class DeviceControl extends Fragment {
         @Override
         public void run()
         {
+            this.bluetootINLiveData = bluetoothViewModelIn.getBluetoothIN();
             byte[] buffer = new byte[256];
             int bytes;
 
             // Se mantiene en modo escucha para determinar el ingreso de datos
-            while (true) {
+            while (appActive) {
                 try {
-                    bytes = mmInStream.read(buffer);
-                    String readMessage = new String(buffer, 0, bytes);
-                    if(readMessage.length()>2)
-                        // Envia los datos obtenidos hacia el evento via handler
-                        bluetoothIn.obtainMessage(handlerState, bytes, -1, readMessage).sendToTarget();
+                    int bytesAmountAvailable = 0;
+                    try{
+                        bytesAmountAvailable = mmInStream.available();
+                    }catch(IOException ex){
+                        Log.w("Cant read avalability","Cant read avalability of the buffer Bluetooth in.",ex);
+                    }
+                    if(bytesAmountAvailable>2){/*so it wont read only one char, incompleting the next reading*/
+                        bytes = mmInStream.read(buffer);
+                        String readMessage = new String(buffer, 0, bytes);
+                        String[] splitReadMessage = readMessage.split("#");
+                        int msgsCount = splitReadMessage.length;
+                        if(msgsCount>0){
+                            /*Can be modified to only confirm the last one.*/
+                            /*for(String currentMessage : splitReadMessage)*/
+                            /* if(currentMessage.length()>2){*/
+                            // Envia los datos obtenidos hacia el evento via handler
+                            //bluetoothIn.obtainMessage(handlerState, bytes, -1, readMessage).sendToTarget();
+                            String lastMessage = splitReadMessage[msgsCount-1];
+                            if(lastMessage!=null)/*just in case*/
+                                if(!lastMessage.isEmpty())
+                                    if(lastMessage.length()>2)
+                                        if(lastMessage.contains(";"))
+                                            this.bluetootINLiveData.postValue(lastMessage);
+
+                        }
+                    }
+
                 } catch (IOException e) {
+                    Log.e("Error reading buffer in", "It wasnt possible to read the buffer in. So the reading routine will be shut downed xd ",e);
                     break;
                 }
             }
