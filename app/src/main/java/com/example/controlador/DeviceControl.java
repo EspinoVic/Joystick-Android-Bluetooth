@@ -10,10 +10,8 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelProviders;
 
 import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -25,12 +23,10 @@ import android.widget.Toast;
 
 import com.example.controlador.bluetootharduino.BluetoothViewModel;
 
-import org.w3c.dom.Text;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Calendar;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import io.github.controlwear.virtual.joystick.android.JoystickView;
@@ -53,7 +49,7 @@ public class DeviceControl extends Fragment {
     // String para la direccion MAC
     private static String address = null;
 
-    public static int anglePivot = 90;
+    public static int anglePivot = 0;
     public static int velocityPivot = 0;
     public final static int ERROR_RATE = 5;
 
@@ -168,7 +164,7 @@ public class DeviceControl extends Fragment {
 
     TextView txtInfoTemp;
     TextView txtLog;
-
+    long timeLastChange = 0;
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -177,7 +173,7 @@ public class DeviceControl extends Fragment {
 
          imgBtn_acelerar = root.findViewById(R.id.btn_acelerar);
 
-         imgBtn_acelerar.setOnClickListener(new View.OnClickListener() {
+         /*imgBtn_acelerar.setOnClickListener(new View.OnClickListener() {
              @Override
              public void onClick(View view) {
                 for(int i = 0; i<10;i++){
@@ -185,6 +181,21 @@ public class DeviceControl extends Fragment {
                 }
              }
          });
+*/
+      /*   imgBtn_acelerar.setOnTouchListener(new View.OnTouchListener() {
+             @Override
+             public boolean onTouch(View v, MotionEvent event) {
+                 switch(event.getAction()) {
+                     case MotionEvent.ACTION_DOWN:
+                         myConexionBTConnectedThread.write("presse");//Backward
+                         return true;
+                     case MotionEvent.ACTION_UP:
+                         myConexionBTConnectedThread.write("relesesd");//Backward
+                         return true;
+                 }
+                 return false;
+             }
+         });*/
         Device value = viewMDeviceSelected.getLiveDataDeviceSelected().getValue();
 
          txtInfoTemp = root.findViewById(R.id.txtInfo);
@@ -201,13 +212,17 @@ public class DeviceControl extends Fragment {
                 Pattern confirmation
                 angle;velocity
 */
+                if(timeLastChange==0){
+                    timeLastChange = System.currentTimeMillis();
+                }
+               /* if(timeLastChange>)*/
                 final String[] confirmationSplit = dataInPrint.split(";");
                 if(confirmationSplit[0].isEmpty() || confirmationSplit[1].isEmpty()){
                     Log.d("ONE EMPTY",confirmationSplit[0] +confirmationSplit[1] + confirmationSplit[0].isEmpty()+ " "+confirmationSplit[1].isEmpty());
                     return;
                 }
-                anglePivot = Integer.parseInt( confirmationSplit[1] );
-                velocityPivot = Integer.parseInt( confirmationSplit[0] );
+                anglePivot = Integer.parseInt( confirmationSplit[0] );
+                velocityPivot = Integer.parseInt( confirmationSplit[1] );
 
                     /*String beforetxt = txtLog.getText().toString();
                     txtLog.setText(beforetxt + dataStringIN);*/
@@ -221,16 +236,27 @@ public class DeviceControl extends Fragment {
         joystickLeft.setOnMoveListener(new JoystickView.OnMoveListener() {
 
             @Override
-            public void onMove(final int angle, final int strength) {
+            public synchronized void onMove(final int angle, final int strength) {
                 String text = angle + "° " + strength ;
                 txtInfoTemp.setText(text);
                 boolean angleChange = false;
                 boolean speedChange = false;
 
-                if(angle<= anglePivot+ERROR_RATE && angle>= anglePivot-ERROR_RATE){
+                if( angle>= anglePivot-ERROR_RATE && angle<= anglePivot+ERROR_RATE){
                     //if new angle is in range (+- ERROR RATE), it will write nothing to bluetooth
 
                 }else{
+                    String ifAngleLess = "angle>= anglePivot-ERROR_RATE: "
+                            + angle +">=" + anglePivot+"-"+ERROR_RATE +
+                            "="+(angle>= anglePivot-ERROR_RATE);
+                    String ifAnglePlus = "angle<= anglePivot+ERROR_RATE: "
+                            + angle +"<=" + anglePivot+"+"+ERROR_RATE +
+                            "="+(angle<= anglePivot+ERROR_RATE);
+
+                    Log.d("ANGLE PIVOTE CHANGE","\nLast angle: " + anglePivot + "\nNew angle: "+angle
+                    + "\nOperation: "+"\n"+ifAngleLess+"\n"+ifAnglePlus
+                    );
+                    anglePivot = angle;
                     angleChange = true;
                 }
 
@@ -238,11 +264,29 @@ public class DeviceControl extends Fragment {
                     //if new VELOCITY (strength) is in range (+- ERROR RATE), it will write nothing to bluetooth
 
                 }else{
+                    String ifVelociPlus = "strength <= velocityPivot+ERROR_RATE: "
+                            + strength +"<=" + velocityPivot+"+"+ERROR_RATE +
+                            "="+(strength>= velocityPivot+ERROR_RATE);
+                    String ifVelociLess = "strength >= velocityPivot-ERROR_RATE: "
+                            + strength +">=" + velocityPivot+"-"+ERROR_RATE +
+                            "="+(strength >= velocityPivot-ERROR_RATE);
+
+                    Log.d("VELOCITY PIVOTE CHANGE","\nLast velocity: " + velocityPivot + "\nNew velocity: "+strength
+                    + "\nOperation: " + "\n" +ifVelociLess +"\n" + ifVelociPlus
+                    );
+                    velocityPivot = strength;
                     speedChange = true;
                 }
                 /**/
                 if(speedChange||angleChange){
-                    myConexionBTConnectedThread.write("CHANGE;"+angle+";"+strength+"#");
+                    final String change = "$"+angle+";"+strength+"#";
+                    /*new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            myConexionBTConnectedThread.write(change);
+                        }
+                    }).start();*/
+                    myConexionBTConnectedThread.addChange(change);
                 }
 
 
@@ -271,56 +315,104 @@ public class DeviceControl extends Fragment {
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
         private MutableLiveData<String> bluetootINLiveData;
-
+        private ArrayList<String> listChangeState;
         public ConnectedThread(BluetoothSocket socket)
         {
+            this.listChangeState = new ArrayList<>();
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
             try
             {
                 tmpIn = socket.getInputStream();
                 tmpOut = socket.getOutputStream();
+                   // int maxTransmitPacketSize = socket.getMaxTransmitPacketSize();
+
+
             } catch (IOException e) { }
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
         }
 
         @Override
-        public void run()
+        public void run() {
+            while(appActive){
+                if(listChangeState.size()>0){
+                    this.write(listChangeState.get(0));
+                    this.listChangeState.remove(0);
+                }
+
+                try {
+                    sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        public void addChange(String changeState){
+            this.listChangeState.add(changeState);
+        }
+
+        /*@Override*/
+        public void ruhn()
         {
             this.bluetootINLiveData = bluetoothViewModelIn.getBluetoothIN();
             byte[] buffer = new byte[256];
-            int bytes;
+            int bytesAmountRead;
 
             // Se mantiene en modo escucha para determinar el ingreso de datos
             while (appActive) {
                 try {
-                    int bytesAmountAvailable = 0;
-                    try{
-                        bytesAmountAvailable = mmInStream.available();
-                    }catch(IOException ex){
-                        Log.w("Cant read avalability","Cant read avalability of the buffer Bluetooth in.",ex);
-                    }
-                    if(bytesAmountAvailable>2){/*so it wont read only one char, incompleting the next reading*/
-                        bytes = mmInStream.read(buffer);
-                        String readMessage = new String(buffer, 0, bytes);
+                    //if(bytesAmountAvailable>2){/*so it wont read only one char, incompleting the next reading*/
+                        bytesAmountRead = mmInStream.read(buffer,0,buffer.length);
+
+                        String readMessage = new String(buffer, 0, bytesAmountRead);
+                        if(bytesAmountRead==1){
+                           /* try {*/
+                               /* sleep(30);*/
+                                String previouseMsg = readMessage;
+                                bytesAmountRead = mmInStream.read(buffer,0,buffer.length);
+                                readMessage = new String(buffer, 0, bytesAmountRead);
+                                readMessage = previouseMsg + readMessage;
+
+                            /*} catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }*/
+                        }
                         String[] splitReadMessage = readMessage.split("#");
                         int msgsCount = splitReadMessage.length;
                         if(msgsCount>0){
-                            /*Can be modified to only confirm the last one.*/
+                            Log.d("RAW DATA READ",readMessage);
+                            /*Can be modified to only confirm the last one. that shall be validated */
                             /*for(String currentMessage : splitReadMessage)*/
                             /* if(currentMessage.length()>2){*/
                             // Envia los datos obtenidos hacia el evento via handler
-                            //bluetoothIn.obtainMessage(handlerState, bytes, -1, readMessage).sendToTarget();
-                            String lastMessage = splitReadMessage[msgsCount-1];
-                            if(lastMessage!=null)/*just in case*/
-                                if(!lastMessage.isEmpty())
-                                    if(lastMessage.length()>2)
-                                        if(lastMessage.contains(";"))
-                                            this.bluetootINLiveData.postValue(lastMessage);
+                            //bluetoothIn.obtainMessage(handlerState, bytesAmountRead, -1, readMessage).sendToTarget();
+                            /*String lastMessageIndex = splitReadMessage[msgsCount-1];*/
+                            boolean validMessageFound = false;
+                            /*
+                            * it'll start from end to start, to found the last valid pivot, in case the bluettooth
+                            * connection gets interfered
+                            * */
+                            for(int i = msgsCount-1; i>=0&& !validMessageFound;i--){
+                                String currentMsg = splitReadMessage[i];/*70;71*/
+                                if(!currentMsg.isEmpty())
+                                    if(currentMsg.length()>2)
+                                        if(currentMsg.contains(";")){
+                                            final String[] splitCurrentMessage = currentMsg.split(";");
+                                            if(!splitCurrentMessage[0].isEmpty() && !splitCurrentMessage[1].isEmpty()){
+                                                this.bluetootINLiveData.postValue(currentMsg);
+                                                validMessageFound = true;
+
+                                            }
+                                        }
+                            }
+                            /*if(!validMessageFound){
+                                //something maybe v:
+                            }*/
+
 
                         }
-                    }
 
                 } catch (IOException e) {
                     Log.e("Error reading buffer in", "It wasnt possible to read the buffer in. So the reading routine will be shut downed xd ",e);
@@ -332,7 +424,16 @@ public class DeviceControl extends Fragment {
         public synchronized void write(String input)
         {
             try {
-                mmOutStream.write(input.getBytes());
+               /* mmOutStream.flush();*/
+                mmOutStream.write(input.getBytes(),0,input.length());
+               /* mmOutStream.flush();*/
+
+               /* try {
+                    sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }*/
+                /*Log.d("Writed",input);*/
             }
             catch (IOException e)
             {
