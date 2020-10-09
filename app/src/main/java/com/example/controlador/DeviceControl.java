@@ -438,7 +438,7 @@ public class DeviceControl extends Fragment {
             catch (IOException e)
             {
                 //si no es posible enviar datos se cierra la conexión
-                Toast.makeText(getContext(), "La Conexión fallo", Toast.LENGTH_SHORT).show();
+                /*Toast.makeText(getContext(), "La Conexión fallo", Toast.LENGTH_SHORT).show();*/
 
             }
         }
