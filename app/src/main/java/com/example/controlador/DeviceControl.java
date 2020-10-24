@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -64,6 +65,8 @@ public class DeviceControl extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
         if (getArguments() != null) {
 
         }
@@ -117,35 +120,41 @@ public class DeviceControl extends Fragment {
     public void onResume()
     {
         super.onResume();
-        //Consigue la direccion MAC desde DeviceListActivity via intent
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                //Consigue la direccion MAC desde DeviceListActivity via intent
 
-        //Consigue la direccion MAC desde DeviceListActivity via EXTRA
-        address = viewMDeviceSelected.getLiveDataDeviceSelected().getValue().addres;
-        //Setea la direccion MAC
-        BluetoothDevice device = btAdapter.getRemoteDevice(address);
+                //Consigue la direccion MAC desde DeviceListActivity via EXTRA
+                address = viewMDeviceSelected.getLiveDataDeviceSelected().getValue().addres;
+                //Setea la direccion MAC
+                BluetoothDevice device = btAdapter.getRemoteDevice(address);
 
-        try
-        {
-            //crea un conexion de salida segura para el dispositivo
-            //usando el servicio UUID
-            btSocket = device.createRfcommSocketToServiceRecord(BTMODULEUUID);//createBluetoothSocket(device);
-        } catch (IOException e) {
-            Toast.makeText(getContext(), "La creacción del Socket fallo", Toast.LENGTH_SHORT).show();
-        }
-        // Establece la conexión con el socket Bluetooth.
-        try
-        {
-            this.appActive   = true;
-            btSocket.connect();
-        } catch (IOException e) {
-            try {
-                btSocket.close();
-            } catch (IOException e2) {
+                try
+                {
+                    //crea un conexion de salida segura para el dispositivo
+                    //usando el servicio UUID
+                    btSocket = device.createRfcommSocketToServiceRecord(BTMODULEUUID);//createBluetoothSocket(device);
+                } catch (IOException e) {
+                    Toast.makeText(getContext(), "La creación del Socket fallo", Toast.LENGTH_SHORT).show();
+                }
+                // Establece la conexión con el socket Bluetooth.
+                try
+                {
+                    appActive   = true;
+                    btSocket.connect();
+                } catch (IOException e) {
+                    try {
+                        btSocket.close();
+                    } catch (IOException e2) {
 
+                    }
+                }
+                myConexionBTConnectedThread = new ConnectedThread(btSocket);
+                myConexionBTConnectedThread.start();
             }
-        }
-        myConexionBTConnectedThread = new ConnectedThread(btSocket);
-        myConexionBTConnectedThread.start();
+        }).start();
+
     }
 
     @Override
@@ -232,8 +241,8 @@ public class DeviceControl extends Fragment {
             }
         });
 
-        JoystickView joystickLeft = root.findViewById(R.id.joystickView_lanchaDirection);
-        joystickLeft.setOnMoveListener(new JoystickView.OnMoveListener() {
+        JoystickView joystickDirection = root.findViewById(R.id.joystickView_lanchaDirection);
+        joystickDirection.setOnMoveListener(new JoystickView.OnMoveListener() {
 
             @Override
             public synchronized void onMove(final int angle, final int strength) {
@@ -286,12 +295,53 @@ public class DeviceControl extends Fragment {
                             myConexionBTConnectedThread.write(change);
                         }
                     }).start();*/
-                    myConexionBTConnectedThread.addChange(change);
+                    if(myConexionBTConnectedThread!=null)
+                        myConexionBTConnectedThread.addChange(change);
                 }
 
 
             }
         });
+
+        JoystickView joystickViewVelocity  = root.findViewById(R.id.joystickView_lanchaVelocidad);
+        joystickViewVelocity.setOnMoveListener(new JoystickView.OnMoveListener() {
+            @Override
+            public void onMove(int angle, int strength) {
+                String text = angle + "° " + strength ;
+                txtInfoTemp.setText(text);
+                boolean speedChange = false;
+
+                if(strength <= velocityPivot+ERROR_RATE && strength >= velocityPivot-ERROR_RATE){
+                    //if new VELOCITY (strength) is in range (+- ERROR RATE), it will write nothing to bluetooth
+
+                }else{
+                    String ifVelociPlus = "strength <= velocityPivot+ERROR_RATE: "
+                            + strength +"<=" + velocityPivot+"+"+ERROR_RATE +
+                            "="+(strength>= velocityPivot+ERROR_RATE);
+                    String ifVelociLess = "strength >= velocityPivot-ERROR_RATE: "
+                            + strength +">=" + velocityPivot+"-"+ERROR_RATE +
+                            "="+(strength >= velocityPivot-ERROR_RATE);
+
+                    Log.d("VELOCITY PIVOTE CHANGE","\nLast velocity: " + velocityPivot + "\nNew velocity: "+strength
+                            + "\nOperation: " + "\n" +ifVelociLess +"\n" + ifVelociPlus
+                    ); +
+                    velocityPivot = strength;
+                    speedChange = true;
+                }
+                /**/
+                if(speedChange||angleChange){
+                    final String change = "$"+angle+";"+strength+"#";
+
+                    if(myConexionBTConnectedThread!=null)
+                        myConexionBTConnectedThread.addChange(change);
+                }
+
+
+            }
+
+        });
+
+
         return root;
     }
 

@@ -37,14 +37,30 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_margin="32dp"
-        android:background="@drawable/joystick_background"
+        android:background="@drawable/joystick_background_direction"
         custom:JV_buttonImage="@drawable/pink_ball"
         custom:JV_fixedCenter="false"
         custom:layout_constraintBottom_toBottomOf="parent"
-        custom:layout_constraintLeft_toLeftOf="parent"
-        custom:layout_constraintRight_toRightOf="parent"
+        custom:layout_constraintStart_toStartOf="@id/gl_centerVertical"
+        custom:layout_constraintEnd_toEndOf="parent"
+        custom:JV_buttonDirection="horizontal"
         />
 
+    <io.github.controlwear.virtual.joystick.android.JoystickView
+        xmlns:custom="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/joystickView_lanchaVelocidad"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="32dp"
+        android:background="@drawable/joystick_background_velocidad"
+        custom:JV_buttonImage="@drawable/pink_ball"
+        custom:JV_fixedCenter="false"
+        custom:JV_buttonDirection="vertical"
+        custom:layout_constraintBottom_toBottomOf="parent"
+        custom:layout_constraintEnd_toEndOf="@id/gl_centerVertical"
+        custom:layout_constraintStart_toStartOf="parent"
+        />
 
     <ImageButton
         android:id="@+id/btn_acelerar"
