@@ -38,9 +38,6 @@ public class DeviceControl extends Fragment {
     ImageButton imgBtn_acelerar;
     DeviceSelected viewMDeviceSelected;
 
-
-    Handler bluetoothIn;
-    final int handlerState = 0;
     private BluetoothAdapter btAdapter = null;
     private BluetoothSocket btSocket = null;
     private StringBuilder dataStringIN = new StringBuilder();
@@ -50,13 +47,21 @@ public class DeviceControl extends Fragment {
     // String para la direccion MAC
     private static String address = null;
 
-    public static int anglePivot = 0;
+    public static int directionPivot = 0;
     public static int velocityPivot = 0;
     public final static int ERROR_RATE = 5;
 
     BluetoothViewModel bluetoothViewModelIn;
 
     private boolean appActive;
+
+    byte startTramaDirection = "D".getBytes()[0];
+    byte endTramaDirection = "D".getBytes()[0];
+
+    byte startTramaVelocity = "V".getBytes()[0];
+    byte endTramaVelocity = "V".getBytes()[0];
+
+
     public DeviceControl() {
         // Required empty public constructor
     }
@@ -74,43 +79,6 @@ public class DeviceControl extends Fragment {
 
         this.bluetoothViewModelIn = new ViewModelProvider(requireActivity()).get(BluetoothViewModel.class);
 
-       /* bluetoothIn = new Handler(Looper.getMainLooper()) {
-
-            public void handleMessage(android.os.Message msg) {
-                if (msg.what == handlerState) {
-                    String readMessage = (String) msg.obj;
-                    dataStringIN.append(readMessage);
-
-                    int endOfLineIndex = dataStringIN.length();*//*dataStringIN.indexOf("#");*//*
-
-                    if (endOfLineIndex > 0) {
-                        String dataInPrint = dataStringIN.substring(0, endOfLineIndex);
-
-                        if(dataInPrint.contains(";")){*//*CONFIRM;angle;velocity*//*
-
-                            dataInPrint = dataInPrint.substring(0,dataInPrint.length()-1);*//*Remove #*//*
-                            final String[] confirmationSplit = dataInPrint.split(";");
-                            if(confirmationSplit[0].isEmpty() || confirmationSplit[1].isEmpty()){
-                                Log.d("ONE EMPTY",confirmationSplit[0] +confirmationSplit[1] + confirmationSplit[0].isEmpty()+ " "+confirmationSplit[1].isEmpty());
-                                return;
-                            }
-                            anglePivot = Integer.parseInt( confirmationSplit[1] );
-                            velocityPivot = Integer.parseInt( confirmationSplit[0] );
-
-                            *//*String beforetxt = txtLog.getText().toString();
-                            txtLog.setText(beforetxt + dataStringIN);*//*
-//                            System.out.println(dataInPrint);
-                            Log.d("CONFIRMATION",dataInPrint);
-
-                        }
-                        //txt datra in
-                        //txtInfoTemp.setText("Dato: " + dataInPrint);//<-<- PARTE A MODIFICAR >->->
-                        //dataStringIN.delete(0, dataStringIN.length());
-                    }
-                }
-            }
-        };
-*/
         btAdapter = BluetoothAdapter.getDefaultAdapter(); // get Bluetooth adapter
         VerificarEstadoBT();
 
@@ -182,29 +150,6 @@ public class DeviceControl extends Fragment {
 
          imgBtn_acelerar = root.findViewById(R.id.btn_acelerar);
 
-         /*imgBtn_acelerar.setOnClickListener(new View.OnClickListener() {
-             @Override
-             public void onClick(View view) {
-                for(int i = 0; i<10;i++){
-                    myConexionBTConnectedThread.write("CHANGE;"+(i*10)+";"+((i*10)+1)+"#");//Backward
-                }
-             }
-         });
-*/
-      /*   imgBtn_acelerar.setOnTouchListener(new View.OnTouchListener() {
-             @Override
-             public boolean onTouch(View v, MotionEvent event) {
-                 switch(event.getAction()) {
-                     case MotionEvent.ACTION_DOWN:
-                         myConexionBTConnectedThread.write("presse");//Backward
-                         return true;
-                     case MotionEvent.ACTION_UP:
-                         myConexionBTConnectedThread.write("relesesd");//Backward
-                         return true;
-                 }
-                 return false;
-             }
-         });*/
         Device value = viewMDeviceSelected.getLiveDataDeviceSelected().getValue();
 
          txtInfoTemp = root.findViewById(R.id.txtInfo);
@@ -230,12 +175,9 @@ public class DeviceControl extends Fragment {
                     Log.d("ONE EMPTY",confirmationSplit[0] +confirmationSplit[1] + confirmationSplit[0].isEmpty()+ " "+confirmationSplit[1].isEmpty());
                     return;
                 }
-                anglePivot = Integer.parseInt( confirmationSplit[0] );
+                directionPivot = Integer.parseInt( confirmationSplit[0] );
                 velocityPivot = Integer.parseInt( confirmationSplit[1] );
 
-                    /*String beforetxt = txtLog.getText().toString();
-                    txtLog.setText(beforetxt + dataStringIN);*/
-//                            System.out.println(dataInPrint);
                 Log.d("CONFIRMATION",dataInPrint);
 
             }
@@ -245,59 +187,45 @@ public class DeviceControl extends Fragment {
         joystickDirection.setOnMoveListener(new JoystickView.OnMoveListener() {
 
             @Override
-            public synchronized void onMove(final int angle, final int strength) {
-                String text = angle + "° " + strength ;
+            public synchronized void onMove(final int angle, final int currentDirection) {
+                String text = angle + "° " + currentDirection ;
                 txtInfoTemp.setText(text);
-                boolean angleChange = false;
-                boolean speedChange = false;
+                boolean directionValueChange = false;
 
-                if( angle>= anglePivot-ERROR_RATE && angle<= anglePivot+ERROR_RATE){
-                    //if new angle is in range (+- ERROR RATE), it will write nothing to bluetooth
+                if( currentDirection>= directionPivot-ERROR_RATE && currentDirection<= directionPivot+ERROR_RATE){
+                    //if new currentDirection is in range (+- ERROR RATE), it will write nothing to bluetooth
 
                 }else{
-                    String ifAngleLess = "angle>= anglePivot-ERROR_RATE: "
-                            + angle +">=" + anglePivot+"-"+ERROR_RATE +
-                            "="+(angle>= anglePivot-ERROR_RATE);
-                    String ifAnglePlus = "angle<= anglePivot+ERROR_RATE: "
-                            + angle +"<=" + anglePivot+"+"+ERROR_RATE +
-                            "="+(angle<= anglePivot+ERROR_RATE);
+                   /* String ifAngleLess = "currentDirection>= directionPivot-ERROR_RATE: "
+                            + currentDirection +">=" + directionPivot+"-"+ERROR_RATE +
+                            "="+(currentDirection>= directionPivot-ERROR_RATE);
+                    String ifAnglePlus = "currentDirection<= directionPivot+ERROR_RATE: "
+                            + currentDirection +"<=" + directionPivot+"+"+ERROR_RATE +
+                            "="+(currentDirection<= directionPivot+ERROR_RATE);
 
-                    Log.d("ANGLE PIVOTE CHANGE","\nLast angle: " + anglePivot + "\nNew angle: "+angle
+                    Log.d("ANGLE PIVOTE CHANGE","\nLast currentDirection: " + directionPivot + "\nNew currentDirection: "+currentDirection
                     + "\nOperation: "+"\n"+ifAngleLess+"\n"+ifAnglePlus
-                    );
-                    anglePivot = angle;
-                    angleChange = true;
+                    );*/
+
+                   directionPivot = currentDirection/2;
+                    /*directionValueChange = true;*/
+
+                    if(angle>90){//points stick left
+                        directionPivot*=-1;
+                    }
+
+                    byte[] trama = new byte[]{startTramaDirection,new Integer(directionPivot).byteValue()/*,endTramaDirection*/};
+
+
+                    if(myConexionBTConnectedThread!=null)
+                        myConexionBTConnectedThread.addChange(trama);
                 }
 
-                if(strength <= velocityPivot+ERROR_RATE && strength >= velocityPivot-ERROR_RATE){
-                    //if new VELOCITY (strength) is in range (+- ERROR RATE), it will write nothing to bluetooth
-
-                }else{
-                    String ifVelociPlus = "strength <= velocityPivot+ERROR_RATE: "
-                            + strength +"<=" + velocityPivot+"+"+ERROR_RATE +
-                            "="+(strength>= velocityPivot+ERROR_RATE);
-                    String ifVelociLess = "strength >= velocityPivot-ERROR_RATE: "
-                            + strength +">=" + velocityPivot+"-"+ERROR_RATE +
-                            "="+(strength >= velocityPivot-ERROR_RATE);
-
-                    Log.d("VELOCITY PIVOTE CHANGE","\nLast velocity: " + velocityPivot + "\nNew velocity: "+strength
-                    + "\nOperation: " + "\n" +ifVelociLess +"\n" + ifVelociPlus
-                    );
-                    velocityPivot = strength;
-                    speedChange = true;
-                }
-                /**/
-                if(speedChange||angleChange){
-                    final String change = "$"+angle+";"+strength+"#";
-                    /*new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            myConexionBTConnectedThread.write(change);
-                        }
-                    }).start();*/
+                /*if(directionValueChange){
+                    final String change = "$"+currentDirection +"#";
                     if(myConexionBTConnectedThread!=null)
                         myConexionBTConnectedThread.addChange(change);
-                }
+                }*/
 
 
             }
@@ -306,36 +234,36 @@ public class DeviceControl extends Fragment {
         JoystickView joystickViewVelocity  = root.findViewById(R.id.joystickView_lanchaVelocidad);
         joystickViewVelocity.setOnMoveListener(new JoystickView.OnMoveListener() {
             @Override
-            public void onMove(int angle, int strength) {
-                String text = angle + "° " + strength ;
+            public void onMove(int angle, int currentVelocity) {
+                String text = angle + "° " + currentVelocity ;
                 txtInfoTemp.setText(text);
                 boolean speedChange = false;
 
-                if(strength <= velocityPivot+ERROR_RATE && strength >= velocityPivot-ERROR_RATE){
-                    //if new VELOCITY (strength) is in range (+- ERROR RATE), it will write nothing to bluetooth
+                if(currentVelocity <= velocityPivot+ERROR_RATE && currentVelocity >= velocityPivot-ERROR_RATE){
+                    //if new VELOCITY (currentVelocity) is in range (+- ERROR RATE), it will write nothing to bluetooth
 
                 }else{
-                    String ifVelociPlus = "strength <= velocityPivot+ERROR_RATE: "
-                            + strength +"<=" + velocityPivot+"+"+ERROR_RATE +
-                            "="+(strength>= velocityPivot+ERROR_RATE);
-                    String ifVelociLess = "strength >= velocityPivot-ERROR_RATE: "
-                            + strength +">=" + velocityPivot+"-"+ERROR_RATE +
-                            "="+(strength >= velocityPivot-ERROR_RATE);
+               /*     String ifVelociPlus = "currentVelocity <= velocityPivot+ERROR_RATE: "
+                            + currentVelocity +"<=" + velocityPivot+"+"+ERROR_RATE +
+                            "="+(currentVelocity>= velocityPivot+ERROR_RATE);
+                    String ifVelociLess = "currentVelocity >= velocityPivot-ERROR_RATE: "
+                            + currentVelocity +">=" + velocityPivot+"-"+ERROR_RATE +
+                            "="+(currentVelocity >= velocityPivot-ERROR_RATE);
 
-                    Log.d("VELOCITY PIVOTE CHANGE","\nLast velocity: " + velocityPivot + "\nNew velocity: "+strength
+                    Log.d("VELOCITY PIVOTE CHANGE","\nLast velocity: " + velocityPivot + "\nNew velocity: "+currentVelocity
                             + "\nOperation: " + "\n" +ifVelociLess +"\n" + ifVelociPlus
-                    ); +
-                    velocityPivot = strength;
-                    speedChange = true;
-                }
-                /**/
-                if(speedChange||angleChange){
-                    final String change = "$"+angle+";"+strength+"#";
+                    );*/
+                    velocityPivot = currentVelocity/2;
 
+                    //para la lancha, no necesita identificar hacia atrás
+                 /*   if(angle>180){//points stick down
+                        velocityPivot*=-1;
+                    }
+*/
+                    byte[] trama = new byte[]{startTramaVelocity,new Integer(currentVelocity).byteValue()/*,endTramaVelocity*/};
                     if(myConexionBTConnectedThread!=null)
-                        myConexionBTConnectedThread.addChange(change);
+                        myConexionBTConnectedThread.addChange(trama);
                 }
-
 
             }
 
@@ -365,7 +293,8 @@ public class DeviceControl extends Fragment {
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
         private MutableLiveData<String> bluetootINLiveData;
-        private ArrayList<String> listChangeState;
+        private ArrayList<byte[]> listChangeState;
+
         public ConnectedThread(BluetoothSocket socket)
         {
             this.listChangeState = new ArrayList<>();
@@ -399,8 +328,8 @@ public class DeviceControl extends Fragment {
             }
         }
 
-        public void addChange(String changeState){
-            this.listChangeState.add(changeState);
+        public void addChange(byte[] trama){
+            this.listChangeState.add(trama);
         }
 
         /*@Override*/
@@ -471,18 +400,12 @@ public class DeviceControl extends Fragment {
             }
         }
         //Envio de trama
-        public synchronized void write(String input)
+        public synchronized void write(byte[] tramaOut)
         {
             try {
-               /* mmOutStream.flush();*/
-                mmOutStream.write(input.getBytes(),0,input.length());
+                mmOutStream.write(tramaOut);
                /* mmOutStream.flush();*/
 
-               /* try {
-                    sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }*/
                 /*Log.d("Writed",input);*/
             }
             catch (IOException e)
